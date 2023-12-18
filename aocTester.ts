@@ -35,7 +35,7 @@ export const aocTest = (
     throw new Error(`You forgot to update the files: "${filesThatHaveChangeMe.join('", "')}"`);
   }
 
-  const outputForExample = solution(exampleInput);
+  const outputForExample = String(solution(exampleInput));
   expect(outputForExample).toEqual(exampleOutput);
   // if (outputForExample != exampleOutput) {
   //   console.log(`lol be careful bud, "${outputForExample}" != "${exampleOutput}"`);
