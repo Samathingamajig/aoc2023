@@ -1,100 +1,108 @@
-class Brick {
-  public inNodesCount = 0;
-  public outNodes: Brick[];
-
-  public minX: number;
-  public maxX: number;
-  public minY: number;
-  public maxY: number;
-  public minZ: number;
-  public maxZ: number;
-  constructor(constr: string, public id: number) {
-    const corners = constr.split("~");
-    this.minX = +corners[0][0];
-    this.minY = +corners[0][2];
-    this.minZ = +corners[0].slice(4);
-    this.maxX = +corners[1][0];
-    this.maxY = +corners[1][2];
-    this.maxZ = +corners[1].slice(4);
-    this.outNodes = [];
-  }
-
-  collidesXY(other: Brick) {
-    return (
-      this.maxX >= other.minX && // useless comment to get better line breaks
-      this.minX <= other.maxX &&
-      this.maxY >= other.minY &&
-      this.minY <= other.maxY
-    );
-  }
-
-  changeZ(dz: number) {
-    this.minZ += dz;
-    this.maxZ += dz;
-  }
-}
+type Brick = {
+  minX: number;
+  minY: number;
+  minZ: number;
+  maxX: number;
+  maxY: number;
+  maxZ: number;
+  outNodes: number[];
+  special: boolean;
+};
 
 export const solution = (input: string) => {
   // console.log("woohoo");
   // console.time("parsing");
   const bricks = input
     .split("\n")
-    .map((brick, i) => new Brick(brick, i))
-    .sort((a, b) => a.minZ - b.minZ);
-  // console.timeEnd("parsing");
+    .map((brick) => {
+      // const corners = brick.split("~");
+      const mid = brick.indexOf("~");
 
-  // console.time("initial sort");
-  // console.timeEnd("initial sort");
-  for (let bi = 0; bi < bricks.length; bi++) {
-    bricks[bi].id = bi;
-  }
+      return {
+        minX: +brick[0],
+        minY: +brick[2],
+        minZ: +brick.slice(4, mid),
+        maxX: +brick[mid + 1],
+        maxY: +brick[mid + 3],
+        maxZ: +brick.slice(mid + 5),
+        outNodes: [],
+        special: false,
+      } as Brick;
+    })
+    // console.timeEnd("parsing");
+
+    // console.time("sorting");
+    .sort((a, b) => a.minZ - b.minZ);
+  // console.timeEnd("sorting");
+
+  // for (let bi = 0; bi < bricks.length; bi++) {
+  //   bricks[bi].id = bi;
+  // }
+
+  bricks[-1] = { maxZ: 0, outNodes: { push() {} } } as unknown as Brick;
+  const inNodesCounts = new Int16Array(bricks.length);
 
   // console.time("dropping bricks");
   // Yoinked from Fugi
   // https://gist.github.com/FugiTech/efe373cfc5cedafbd30598420e94bab5#file-solve-ts-L25-L45
+  // now with a lot more modifications
   const grid = new Int16Array(100).fill(-1);
   for (let bi = 0; bi < bricks.length; bi++) {
     const b = bricks[bi];
+    // b.id = bi;
     const below = new Set<number>();
     for (let y = b.minY; y <= b.maxY; y++) {
       for (let x = b.minX; x <= b.maxX; x++) {
-        const k = grid[y * 10 + x];
-        if (k !== -1) {
-          below.add(k);
-        }
-        grid[y * 10 + x] = b.id;
+        // const k = ;
+        // if (k !== -1) {
+        below.add(grid[y * 10 + x]);
+        // }
+        grid[y * 10 + x] = bi;
       }
     }
 
-    const B = Array.from(below);
-    const Z = Math.max(0, ...B.map((k) => bricks[k].maxZ));
-    const d = b.minZ - Z - 1;
-    b.minZ -= d;
-    b.maxZ -= d;
+    const B = [...below];
+    const Z = Math.max(...B.map((k) => bricks[k].maxZ));
+    // const d = b.minZ - Z - 1;
+    // b.minZ -= d;
+    b.maxZ -= b.minZ - Z - 1;
     const inNodes = B.filter((k) => bricks[k].maxZ === Z);
-    b.inNodesCount = inNodes.length;
-    inNodes.forEach((k) => bricks[k].outNodes.push(bricks[b.id]));
+    inNodesCounts[bi] = inNodes.length;
+    const winner = inNodes.length === 1;
+    for (let i = 0; i < inNodes.length; i++) {
+      bricks[inNodes[i]].outNodes.push(bi);
+      bricks[inNodes[i]].special ||= winner;
+    }
+    // inNodes.forEach((k) => {
+    //   bricks[k].outNodes.push(bi);
+    //   bricks[k].special ||= winner;
+    // });
   }
   // console.timeEnd("dropping bricks");
 
   let sum = 0;
 
   // console.time("finale");
+  const scratch = new Int16Array(bricks.length);
+  const queue = new Int16Array(bricks.length);
   for (let bi = 0; bi < bricks.length; bi++) {
-    const startingBrick = bricks[bi];
-    const scratch = new Int16Array(bricks.length);
-    if (startingBrick.outNodes.some((other) => other.inNodesCount == 1)) {
-      const queue = [startingBrick];
-      for (let i = 0; i < queue.length; i++) {
+    if (bricks[bi].special) {
+      let qi = 1;
+      queue[0] = bi;
+      scratch.fill(0);
+      // const scratch = new Int16Array(bricks.length);
+      // const queue = [startingBrick.id];
+      for (let i = 0; i < qi; i++) {
         const brick = queue[i];
-        for (const out of brick.outNodes) {
-          scratch[out.id]++;
-          if (scratch[out.id] == out.inNodesCount) {
-            queue.push(out);
+        for (const out of bricks[brick].outNodes) {
+          scratch[out]++;
+          if (scratch[out] === inNodesCounts[out]) {
+            queue[qi] = out;
+            ++qi;
           }
         }
       }
-      sum += queue.length - 1;
+      sum += qi - 1;
     }
   }
   // console.timeEnd("finale");
