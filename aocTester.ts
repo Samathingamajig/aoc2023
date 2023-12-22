@@ -43,7 +43,9 @@ export const aocTest = (
 
   if (!runFullVersions) return;
 
+  console.time("Total time");
   const output = solution(realInput);
+  console.timeEnd("Total time");
   const header = `${"-".repeat(20)} Day ${day} Part ${part} ${"-".repeat(20)}`;
   console.log(header);
   console.log(output);
