@@ -71,14 +71,17 @@ class Brick {
 }
 
 export const solution = (input: string) => {
-  console.log("woohoo");
-  console.time("parsing");
+  //  console.log("woohoo");
+  //  console.time("parsing");
   const bricks = input.split("\n").map((brick, i) => new Brick(brick, i));
-  console.timeEnd("parsing");
+  //  console.timeEnd("parsing");
 
-  console.time("initial sort");
+  //  console.time("initial sort");
   bricks.sort((a, b) => a.minZ - b.minZ);
-  console.timeEnd("initial sort");
+  //  console.timeEnd("initial sort");
+  for (let bi = 0; bi < bricks.length; bi++) {
+    bricks[bi].id = bi;
+  }
 
   // console.time("sort but by max (copied array)");
   // const bricks2 = bricks.toSorted((a, b) => b.maxZ - a.maxZ);
@@ -91,55 +94,79 @@ export const solution = (input: string) => {
   //   }
   // }
 
-  console.time("dropping bricks");
-  for (let bi = 0; bi < bricks.length; bi++) {
-    // console.log(bi);
-    const brick = bricks[bi];
-    // let newZ = 0;
-    // for (let i = 0; i < bricks2.length; i++) {
-    //   const other = bricks2[i];
-    //   if (other.maxZ < brick.minZ && other.collidesXY(brick)) {
-    //     newZ = other.maxZ + 1;
-    //     break;
-    //   }
-    // }
-    let newZ = 0;
-    for (let i = 0; i < bi; i++) {
-      const other = bricks[i];
-      if (other.maxZ >= newZ && other.maxZ < brick.minZ && other.collidesXY(brick)) {
-        newZ = other.maxZ + 1;
+  //  console.time("dropping bricks");
+  // Yoinked from Fugi
+  // https://gist.github.com/FugiTech/efe373cfc5cedafbd30598420e94bab5#file-solve-ts-L25-L45
+  const grid = new Int16Array(100).fill(-1);
+  bricks.forEach((b) => {
+    const below = new Set<number>();
+    for (let y = b.minY; y <= b.maxY; y++) {
+      for (let x = b.minX; x <= b.maxX; x++) {
+        const k = grid[y * 10 + x];
+        if (k !== -1) {
+          below.add(k);
+        }
+        grid[y * 10 + x] = b.id;
       }
     }
-    // const newZ = bricks.reduce((result, curr, i) => {
-    //   if (i >= bi || curr.maxZ > brick.minZ || !curr.collidesXY(brick)) {
-    //     return result;
-    //   } else {
-    //     return Math.max(result, curr.maxZ + 1);
-    //   }
-    // }, 0);
-    brick.changeZ(newZ - brick.minZ);
-    // console.log(newZ)
-    // const careAbout = bricks.filter((other) => brick.collidesXY(other) && brick != other && other.maxZ < brick.minZ);
-    // silly: while (true) {
-    //   // console.log(brick.minSelfZ);
 
-    //   for (let i = 0; i < careAbout.length; i++) {
-    //     if (brick.collides(careAbout[i])) {
-    //       brick.changeZ(1);
-    //       break silly;
-    //     }
-    //   }
-    //   if (brick.minZ == 0) {
-    //     break;
-    //   }
-    //   brick.changeZ(-1);
-    // }
-  }
-  console.timeEnd("dropping bricks");
+    const B = Array.from(below);
+    const Z = Math.max(0, ...B.map((k) => bricks[k].maxZ));
+    const d = b.minZ - Z - 1;
+    b.minZ -= d;
+    b.maxZ -= d;
+    const inNodes = B.filter((k) => bricks[k].maxZ === Z);
+    b.inNodesCount = inNodes.length;
+    inNodes.forEach((k) => bricks[k].outNodes.push(bricks[b.id]));
+  });
+  // for (let bi = 0; bi < bricks.length; bi++) {
+  //   // console.log(bi);
+  //   const brick = bricks[bi];
+  //   // let newZ = 0;
+  //   // for (let i = 0; i < bricks2.length; i++) {
+  //   //   const other = bricks2[i];
+  //   //   if (other.maxZ < brick.minZ && other.collidesXY(brick)) {
+  //   //     newZ = other.maxZ + 1;
+  //   //     break;
+  //   //   }
+  //   // }
+  //   let newZ = 0;
+  //   for (let i = 0; i < bi; i++) {
+  //     const other = bricks[i];
+  //     if (other.maxZ >= newZ && other.maxZ < brick.minZ && other.collidesXY(brick)) {
+  //       newZ = other.maxZ + 1;
+  //     }
+  //   }
+  //   // const newZ = bricks.reduce((result, curr, i) => {
+  //   //   if (i >= bi || curr.maxZ > brick.minZ || !curr.collidesXY(brick)) {
+  //   //     return result;
+  //   //   } else {
+  //   //     return Math.max(result, curr.maxZ + 1);
+  //   //   }
+  //   // }, 0);
+  //   brick.changeZ(newZ - brick.minZ);
+  //   // console.log(newZ)
+  //   // const careAbout = bricks.filter((other) => brick.collidesXY(other) && brick != other && other.maxZ < brick.minZ);
+  //   // silly: while (true) {
+  //   //   // console.log(brick.minSelfZ);
 
-  console.time("second sort");
+  //   //   for (let i = 0; i < careAbout.length; i++) {
+  //   //     if (brick.collides(careAbout[i])) {
+  //   //       brick.changeZ(1);
+  //   //       break silly;
+  //   //     }
+  //   //   }
+  //   //   if (brick.minZ == 0) {
+  //   //     break;
+  //   //   }
+  //   //   brick.changeZ(-1);
+  //   // }
+  // }
+  //  console.timeEnd("dropping bricks");
+
+  //  console.time("second sort");
   bricks.sort((a, b) => a.minZ - b.minZ);
-  console.timeEnd("second sort");
+  //  console.timeEnd("second sort");
 
   // for (let bi = 0; bi < bricks.length; bi++) {
   //   bricks[bi].finalIndex = bi;
@@ -148,42 +175,42 @@ export const solution = (input: string) => {
   // console.log(bricks);
 
   // for (const brick of bricks) {
-  console.time("building graph");
-  for (let bi = 0; bi < bricks.length; bi++) {
-    const brick = bricks[bi];
-    for (let i = bi + 1; i < bricks.length; i++) {
-      // for (const other of bricks) {
-      const other = bricks[i];
-      if (
-        other.minZ - 1 == brick.maxZ && // again, useless comment to get better line breaks
-        other.collidesXY(brick)
-      ) {
-        // console.log(brick.finalIndex + " " + other.finalIndex);
-        brick.outNodes.push(other);
-        other.inNodesCount++;
-      } else if (other.minZ - 1 > brick.maxZ) break;
-      // const careAbout2 = bricks.filter(
-      //   (yetAnother) =>
-      //     yetAnother.collidesXY(other) && // again, useless comment to get better line breaks
-      //     yetAnother.maxZ + 1 == other.minZ &&
-      //     yetAnother != brick &&
-      //     yetAnother != other,
-      // );
-      // if (careAbout2.length == 0) {
-      //   // other.fallen = true;
-      // } else {
-      //   brick.fallen = true;
-      // }
-    }
-  }
-  console.timeEnd("building graph");
+  // console.time("building graph");
+  // for (let bi = 0; bi < bricks.length; bi++) {
+  //   const brick = bricks[bi];
+  //   for (let i = bi + 1; i < bricks.length; i++) {
+  //     // for (const other of bricks) {
+  //     const other = bricks[i];
+  //     if (
+  //       other.minZ - 1 == brick.maxZ && // again, useless comment to get better line breaks
+  //       other.collidesXY(brick)
+  //     ) {
+  //       // console.log(brick.finalIndex + " " + other.finalIndex);
+  //       brick.outNodes.push(other);
+  //       other.inNodesCount++;
+  //     } else if (other.minZ - 1 > brick.maxZ) break;
+  //     // const careAbout2 = bricks.filter(
+  //     //   (yetAnother) =>
+  //     //     yetAnother.collidesXY(other) && // again, useless comment to get better line breaks
+  //     //     yetAnother.maxZ + 1 == other.minZ &&
+  //     //     yetAnother != brick &&
+  //     //     yetAnother != other,
+  //     // );
+  //     // if (careAbout2.length == 0) {
+  //     //   // other.fallen = true;
+  //     // } else {
+  //     //   brick.fallen = true;
+  //     // }
+  //   }
+  // }
+  // console.timeEnd("building graph");
 
   let sum = 0;
 
   // const removable = bricks.filter((brick) => brick.outNodes.some((other) => other.inNodesCount == 1));
 
   // for (const startingBrick of removable) {
-  console.time("finale");
+  //  console.time("finale");
   // console.log(scratch);
   for (let bi = 0; bi < bricks.length; bi++) {
     const startingBrick = bricks[bi];
@@ -209,7 +236,7 @@ export const solution = (input: string) => {
       sum += queue.length - 1;
     }
   }
-  console.timeEnd("finale");
+  //  console.timeEnd("finale");
 
   // console.log(bricks);
 
