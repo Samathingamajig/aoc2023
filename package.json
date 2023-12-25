@@ -3,13 +3,16 @@
   "module": "index.ts",
   "type": "module",
   "devDependencies": {
-    "bun-types": "^1.0.0"
+    "bun-types": "^1.0.0",
+    "tsx": "^4.7.0"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
   },
   "dependencies": {
     "@datastructures-js/priority-queue": "^6.3.0",
-    "flatqueue": "^2.0.3"
+    "@types/node": "^20.10.5",
+    "flatqueue": "^2.0.3",
+    "z3-solver": "^4.12.4"
   }
 }
